@@ -4,6 +4,8 @@ from pydantic import BaseModel, field_validator
 
 from domain.answer.answer_schema import Answer
 
+from domain.user.user_schema import User # 질문 작성자 이름 표시하기
+
 
 class Question(BaseModel):
     id: int
@@ -11,6 +13,8 @@ class Question(BaseModel):
     content: str | None = None # content 항목은 문자열 또는(|) None을 가질 수 있고, 디폴트 값은 None이라는 의미
     create_date: datetime.datetime
     answers: list[Answer] = []
+    user: User | None
+    modify_date: datetime.datetime | None = None
 
 class QuestionCreate(BaseModel):
     subject: str
@@ -25,3 +29,9 @@ class QuestionCreate(BaseModel):
 class QuestionList(BaseModel):
     total: int = 0
     question_list: list[Question] = []
+
+class QuestionUpdate(QuestionCreate):
+    question_id: int
+
+class QuestionDelete(BaseModel):
+    question_id: int

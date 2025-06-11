@@ -15,7 +15,7 @@ from database import get_db
 from domain.user import user_crud, user_schema
 from domain.user.user_crud import pwd_context
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 # 토큰 유효 시간 정할 수 있는 부분
 SECRET_KEY = "bf04fb96db26afe176a1ed3faf17bbb8bcb1e164c53366ea4b1c6eafff87e137"
 ALGORITHM = "HS256"
 
