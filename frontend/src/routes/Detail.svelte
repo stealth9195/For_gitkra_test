@@ -74,12 +74,30 @@
         }
     }
 
-    // 추천 기능
+    // 질문 추천 기능
     function vote_question(_question_id) {
         if(window.confirm('추천하시겠습니까?')) {
             let url = "/api/question/vote"
             let params = {
                 question_id: _question_id
+            }
+            fastapi('post', url, params, 
+                (json) => {
+                    get_question()
+                },
+                (err_json) => {
+                    error = err_json
+                }
+            )
+        }
+    }
+
+    // 답변 추천 기능
+    function vote_answer(answer_id) {
+        if(window.confirm('정말로 추천하시겠습니까?')) {
+            let url = "/api/answer/vote"
+            let params = {
+                answer_id: answer_id
             }
             fastapi('post', url, params, 
                 (json) => {
@@ -132,11 +150,12 @@
                 </div>
             </div>
             <div class="my-3">
+                <!-- 질문 추천 버튼 -->
                 <button class="btn btn-sm btn-outline-secondary"
                     on:click="{vote_question(question.id)}"> 
                     추천
                     <span class="badge rounded-pill bg-success">{ question.voter.length }</span>
-                </button> <!-- 추천 버튼 -->
+                </button> 
                 {#if question.user && $username === question.user.username} <!-- 질문 작성자와 현재 로그인한 사용자가 동일한 경우 -->
                 <a use:link href="/question-modify/{question.id}" 
                     class = "btn btn-sm btn-outline-secondary">수정</a> <!-- 질문 수정 버튼 활성화 -->
@@ -171,6 +190,13 @@
             </div>
             <!-- 답변 수정 -->
             <div class="my-3">
+                <!-- 답변 추천 버튼 -->
+                <button class="btn btn-sm btn-outline-secondary"
+                    on:click="{vote_answer(answer.id)}"> 
+                    추천
+                    <span class="badge rounded-pill bg-success">{ answer.voter.length }</span>
+                </button>
+                <!-- 답변 수정 및 삭제 버튼 -->
                 {#if answer.user && $username === answer.user.username }
                 <a use:link href="/answer-modify/{answer.id}" 
                     class="btn btn-sm btn-outline-secondary">수정</a>
