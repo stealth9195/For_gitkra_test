@@ -16,6 +16,17 @@ def create_answer(db: Session, question: Question, answer_create: AnswerCreate, 
 def get_answer(db: Session, answer_id: int):
     return db.query(Answer).get(answer_id)
 
+def get_answer_list(db: Session, question_id: int, skip: int =  0, limit: int = 5):
+    _answer_list = db.query(Answer)\
+        .filter(Answer.question_id == question_id)\
+        .order_by(Answer.create_date.desc())
+
+    total = _answer_list.count()
+    answer_list = _answer_list.offset(skip).limit(limit).all()
+
+    return total, answer_list
+
+
 def update_answer(db: Session, db_answer: Answer,
                   answer_update: AnswerUpdate):
     db_answer.content = answer_update.content

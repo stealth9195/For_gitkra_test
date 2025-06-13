@@ -12,7 +12,7 @@ router = APIRouter(
     prefix="/api/answer",
 )
 
-
+# 답변 생성
 @router.post("/create/{question_id}", status_code=status.HTTP_204_NO_CONTENT)
 def answer_create(question_id: int,
                   _answer_create: answer_schema.AnswerCreate,
@@ -26,6 +26,16 @@ def answer_create(question_id: int,
     answer_crud.create_answer(db, question=question,
                               answer_create=_answer_create,
                               user=current_user)
+
+# 답변 목록 만들기
+@router.get("/list", response_model=answer_schema.AnswerList)
+def answer_list(question_id: int, db: Session = Depends(get_db), page: int = 0, size: int = 5):
+    total, _answer_list = answer_crud.get_answer_list(
+        db, question_id=question_id, skip=page * size, limit=size)
+    return {
+        'total': total,
+        'answer_list': _answer_list
+    }
 
 @router.get("/detail/{answer_id}", response_model=answer_schema.Answer)
 def answer_detail(answer_id: int, db: Session = Depends(get_db)):

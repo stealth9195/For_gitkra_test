@@ -5,7 +5,7 @@
     import { is_login, username } from "../lib/store"
     import { marked } from 'marked'
     import moment from 'moment/min/moment-with-locales'
-    moment.locale('ko')
+    moment.locale('ko') // 한국어로 날짜 표시
 
     export let params = {}
     let question_id = params.question_id
@@ -16,6 +16,7 @@
     function get_question() {
         fastapi("get", "/api/question/detail/" + question_id, {}, (json) => {
             question = json
+            
         })
     }
 
@@ -38,6 +39,28 @@
             }
         )
     }
+
+    let answer_list = []
+    let size = 5
+    let page = 0
+    let total = 0
+    $: total_page = Math.ceil(total/size)
+
+    // 답변 목록
+    function get_answer_list(_page) {
+        let params = {
+            page: _page,
+            size: size,
+            question_id: question_id,
+        }
+        fastapi("get", "/api/answer/list/" , params, (json) => {
+            answer_list = json.answer_list
+            page = _page
+            total = json.total
+        })
+    }
+
+    get_answer_list(0)
 
     // 질문 삭제 
     function delete_question(_question_id) {
@@ -175,8 +198,8 @@
     }}">목록으로</button>
 
     <!-- 답변 목록 -->
-    <h5 class="border-bottom my-3 py-2">{question.answers.length}개의 답변이 있습니다.</h5>
-    {#each question.answers as answer}
+    <h5 class="border-bottom my-3 py-2">{total}개의 답변이 있습니다.</h5>
+    {#each answer_list as answer}
     <div class="card my-3">
         <div class="card-body">
             <!-- 답변 내용 + 마크다운 -->
@@ -214,6 +237,26 @@
         </div>
     </div>
     {/each}
+
+    <!-- 페이징처리 시작 -->
+    <ul class="pagination justify-content-center">
+        <!-- 이전페이지 -->
+        <li class="page-item {page <= 0 && 'disabled'}">
+            <button class="page-link" on:click="{() => get_answer_list(page-1)}">이전</button>
+        </li>
+        <!-- 페이지번호 -->
+        {#each Array(total_page) as _, loop_page}
+        <li class="page-item {loop_page === page && 'active'}">
+            <button on:click="{() => get_answer_list(loop_page)}" class="page-link">{loop_page+1}</button>
+        </li>
+        {/each}
+        <!-- 다음페이지 -->
+        <li class="page-item {page >= total_page-1 && 'disabled'}">
+            <button class="page-link" on:click="{() => get_answer_list(page+1)}">다음</button>
+        </li>
+    </ul>
+    <!-- 페이징처리 끝 -->
+
     <!-- 답변 등록 -->
     <Error error={error} />
     <form method="post" class="my-3">

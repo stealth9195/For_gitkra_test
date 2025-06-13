@@ -22,6 +22,10 @@ class Answer(BaseModel):
     modify_date: datetime.datetime | None = None
     voter: list[User] = []
 
+class AnswerList(BaseModel):
+    total: int = 0
+    answer_list: list[Answer] = []
+
 class AnswerUpdate(AnswerCreate):
     answer_id: int
 
