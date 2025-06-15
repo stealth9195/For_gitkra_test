@@ -15,6 +15,10 @@
 
     function get_question() {
         fastapi("get", "/api/question/detail/" + question_id, {}, (json) => {
+            // 추천 수 기준 내림차순 정렬
+            json.answers = json.answers.sort((a, b) => {
+                return b.voter.length - a.voter.length
+            })
             question = json
         })
     }
