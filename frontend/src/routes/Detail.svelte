@@ -13,17 +13,35 @@
     let content = ""
     let error = {detail:[]}
 
+    
     function get_question() {
         fastapi("get", "/api/question/detail/" + question_id, {}, (json) => {
             // 추천 수 기준 내림차순 정렬
-            json.answers = json.answers.sort((a, b) => {
-                return b.voter.length - a.voter.length
-            })
+            // json.answers = json.answers.sort((a, b) => {
+            //     return b.voter.length - a.voter.length
+            // })
             question = json
         })
     }
 
     get_question()
+
+    // 정렬 방식 상태 추가
+    let sortMethod = 'lastest'
+
+    // 정렬 함수
+    function sortAnswers(answers, method) {
+        return [...answers].sort((a, b) => {
+            if (method === 'votes') {
+                return b.voter.length - a.voter.length
+            } else if (method === 'latest') {
+                return new Date(b.create_date) - new Date(a.create_date)
+            }
+        })
+    }
+
+    // 반응형 정렬
+    $: sortedAnswers = sortAnswers(question.answers, sortMethod);
 
     function post_answer(event) {
         event.preventDefault()
@@ -180,7 +198,21 @@
 
     <!-- 답변 목록 -->
     <h5 class="border-bottom my-3 py-2">{question.answers.length}개의 답변이 있습니다.</h5>
-    {#each question.answers as answer}
+    <div class="btn-group">
+        <button 
+            class="btn btn-sm {sortMethod === 'latest' ? 'btn-primary' : 'btn-outline-secondary'}"
+            on:click={() => sortMethod = 'latest'}
+        >
+            최신순
+        </button>
+        <button 
+            class="btn btn-sm {sortMethod === 'votes' ? 'btn-primary' : 'btn-outline-secondary'}"
+            on:click={() => sortMethod = 'votes'}
+        >
+            추천순
+        </button>
+    </div>
+    {#each sortedAnswers as answer}
     <div class="card my-3">
         <div class="card-body">
             <!-- 답변 내용 + 마크다운 -->
