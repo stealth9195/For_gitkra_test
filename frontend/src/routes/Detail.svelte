@@ -20,24 +20,28 @@
             // json.answers = json.answers.sort((a, b) => {
             //     return b.voter.length - a.voter.length
             // })
-            question = json
+            question = json;
+            sortMethod = 'latest';
         })
     }
 
     get_question()
 
     // 정렬 방식 상태 추가
-    let sortMethod = 'lastest'
+    let sortMethod = 'lastest';
 
     // 정렬 함수
     function sortAnswers(answers, method) {
         return [...answers].sort((a, b) => {
             if (method === 'votes') {
-                return b.voter.length - a.voter.length
-            } else if (method === 'latest') {
-                return new Date(b.create_date) - new Date(a.create_date)
+                const voteDiff = b.voter.length - a.voter.length;
+                return voteDiff !== 0
+                    ? voteDiff
+                    : new Date(b.create_date) - new Date(a.create_date);    
+            } else {
+                return new Date(b.create_date) - new Date(a.create_date); // 최신순 정렬
             }
-        })
+        });
     }
 
     // 반응형 정렬
@@ -262,4 +266,12 @@
             on:click="{post_answer}" />
     </form>
 </div>
+
+<!-- 스타일 추가 -->
+<style>
+    .btn-group > .btn-primary {
+        z-index: 1 !important;
+        position: relative;
+    }
+</style>
 
