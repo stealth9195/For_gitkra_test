@@ -7,13 +7,26 @@
     import moment from 'moment/min/moment-with-locales'
     moment.locale('ko')
 
+    
+    import { onMount } from 'svelte'
+    
+    // 댓글 펼치기 상태
+    let openComments = {};
+
+    // 댓글 입력 상태
+    let newComment = {}; // answer.id별로 댓글 입력값 저장
+    
+    // 질문, 답변, 에러 상태
     export let params = {}
     let question_id = params.question_id
     let question = {answers:[], voter:[], content: ''}
     let content = ""
     let error = {detail:[]}
 
-    
+    // 정렬 방식 상태 추가
+    let sortMethod = 'latest';
+
+    // 질문 상태 조회
     function get_question() {
         fastapi("get", "/api/question/detail/" + question_id, {}, (json) => {
             // 추천 수 기준 내림차순 정렬
@@ -27,10 +40,8 @@
 
     get_question()
 
-    // 정렬 방식 상태 추가
-    let sortMethod = 'lastest';
 
-    // 정렬 함수
+    // 답변 정렬 함수
     function sortAnswers(answers, method) {
         return [...answers].sort((a, b) => {
             if (method === 'votes') {
@@ -47,6 +58,7 @@
     // 반응형 정렬
     $: sortedAnswers = sortAnswers(question.answers, sortMethod);
 
+    // 답변 등록
     function post_answer(event) {
         event.preventDefault()
         let url = "/api/answer/create/" + question_id
@@ -56,6 +68,55 @@
         fastapi('post', url, params, 
             (json) => {
                 content = ''
+                error = {detail:[]}
+                get_question()
+            },
+            (err_json) => {
+                error = err_json
+            }
+        )
+    }
+
+    // 댓글 펼치기
+    function toggleComments(answerId) {
+        openComments = {
+            ...openComments,
+            [answerId]: !openComments[answerId]
+        }
+        // [추가] 펼칠 때 입력값 초기화
+        if (openComments[answerId]) {
+            newComment[answerId] = ''
+        }
+    }
+
+    // 댓글 등록
+    /*
+    function post_comment(event) {
+        event.preventDefault()
+        let url = "/api/comment/create/" + answer_id
+        let params = {
+            content: content
+        }
+        fastapi('post', url, params, 
+            (json) => {
+                content = ''
+                error = {detail:[]}
+                get_question()
+            },
+            (err_json) => {
+                error = err_json
+            }
+        )
+    }
+    */
+    function addComment(answerId) {
+        let commentContent = newComment[answerId]
+        if (!commentContent || !commentContent.trim()) return;
+        let url = "/api/comment/create/" + answerId
+        let params = { content: commentContent }
+        fastapi('post', url, params, 
+            (json) => {
+                newComment[answerId] = ''
                 error = {detail:[]}
                 get_question()
             },
@@ -143,7 +204,6 @@
 
 <div>
     {question.content}
-</div>
 
 <ul>
     {#each question.answers as answer}
@@ -179,19 +239,23 @@
                     <div>{moment(question.create_date).format("YYYY년 MM월 DD일 hh:mm a")}</div> <!-- 질문 작성 날짜 -->
                 </div>
             </div>
-            <div class="my-3">
-                <!-- 질문 추천 버튼 -->
+            <div class="my-3" style="display: flex; gap: 5px;">
+                <!-- 질문 추천 버튼 -->    
                 <button class="btn btn-sm btn-outline-secondary"
                     on:click="{vote_question(question.id)}"> 
                     추천
                     <span class="badge rounded-pill bg-success">{ question.voter.length }</span>
                 </button> 
-                {#if question.user && $username === question.user.username} <!-- 질문 작성자와 현재 로그인한 사용자가 동일한 경우 -->
+                
+
+                {#if question.user && $username === question.user.username}
+                 <!-- 질문 작성자와 현재 로그인한 사용자가 동일한 경우 -->
                 <a use:link href="/question-modify/{question.id}" 
-                    class = "btn btn-sm btn-outline-secondary">수정</a> <!-- 질문 수정 버튼 활성화 -->
+                    class = "btn btn-sm btn-outline-secondary" style="margin-left: auto;">수정</a> <!-- 질문 수정 버튼 활성화 -->
                 <button class="btn btn-sm btn-outline-secondary"
                     on:click={() => delete_question(question.id)}>삭제</button> <!-- 질문 삭제 버튼 활성화 -->
                 {/if}
+                
             </div>
         </div>
     </div>
@@ -236,22 +300,83 @@
                 </div>
             </div>
             <!-- 답변 수정 -->
-            <div class="my-3">
+            <div class="my-3" style="display: flex; gap: 5px;">
                 <!-- 답변 추천 버튼 -->
                 <button class="btn btn-sm btn-outline-secondary"
                     on:click="{vote_answer(answer.id)}"> 
                     추천
                     <span class="badge rounded-pill bg-success">{ answer.voter.length }</span>
                 </button>
+                <!--작성된 댓글 펼치기 버튼 -->
+                <button class="btn btn-sm btn-outline-secondary"
+                    on:click={() => toggleComments(answer.id)}>댓글</button>
+
+                <!-- {#if openComments[answer.id]}
+                    <div class="comment-section">
+                        {#if answer.comments && answer.comments.length > 0}
+                            {#each answer.comments as comment}
+                                <div class="comment">
+                                    <span class="comment-author">{comment.author}</span>
+                                    <span class="comment-content">{comment.content}</span>
+                                </div>
+                            {/each}
+                        {:else}
+                            <div class="no-comments">아직 댓글이 없습니다.</div>
+                        {/if}
+                    </div>
+                {/if} -->
+
                 <!-- 답변 수정 및 삭제 버튼 -->
                 {#if answer.user && $username === answer.user.username }
                 <a use:link href="/answer-modify/{answer.id}" 
-                    class="btn btn-sm btn-outline-secondary">수정</a>
+                    class="btn btn-sm btn-outline-secondary" style="margin-left: auto;">수정</a>
                 <button class="btn btn-sm btn-outline-secondary"
                     on:click={() => delete_answer(answer.id) }>삭제</button>
                 {/if}
             </div>
         </div>
+        <!-- 댓글창 펼친 후 -->
+        {#if openComments[answer.id]}
+            <div class="comment-section card mt-2 mx-3 mb-3 p-3">
+                <!-- 1. 댓글 작성 폼 -->
+                <form on:submit|preventDefault={() => addComment(answer.id)} class="mt-2">
+                    <div class="comment input&button d-flex gap-2 mb-3">
+                        <input
+                            type="text"
+                            bind:value={newComment[answer.id]}
+                            placeholder="댓글을 입력하세요"
+                            class="form-control mb-1"
+                            disabled={!$is_login}
+                            style="flex: 1 1 auto; min-width: 0;"
+                        />
+                        <button type="submit" class="btn btn-sm btn-primary" style="white-space: nowrap; min-width: 90px;">댓글 등록</button>
+                    </div>
+                </form>
+
+                <!-- 2. 댓글 목록 -->
+                {#if answer.answer_comments && answer.answer_comments.length > 0}
+                    {#each answer.answer_comments as comment, i}
+                        {#if i > 0}
+                            <div class="comment-divider"></div>
+                        {/if}
+                        <div class="comment" style="display: flex; align-items: center; gap: 10px;">
+                            <!-- <span class="comment-user">{comment.user ? comment.user.username : " "}</span> -->
+                            <div class="comment-content">{comment.content}</div>
+
+                            <div class="badge bg-light text-dark p-2 text-start" style="margin-left: auto;">
+                                <div class="mb-2">{ comment.user ? comment.user.username : ""}</div> <!-- 질문 작성자 -->
+                                <div>{moment(comment.create_date).format("YY-MM-DD hh:mm a")}</div> <!-- 질문 작성 날짜 -->
+                            </div>
+
+                        </div>
+                    {/each}
+                {:else}
+                    <div class="no-comments">아직 댓글이 없습니다.</div>
+                {/if}
+
+            </div>
+        {/if}
+
     </div>
     {/each}
     <!-- 답변 등록 -->
@@ -260,7 +385,7 @@
         <div class="mb-3">
             <textarea rows="10" bind:value={content} 
                 disabled={$is_login ? "" : "disabled"}
-                class="form-control" />
+                class="form-control" ></textarea>
         </div>
         <input type="submit" value="답변등록" class="btn btn-primary {$is_login ? '' : 'disabled'}" 
             on:click="{post_answer}" />
@@ -273,5 +398,13 @@
         z-index: 1 !important;
         position: relative;
     }
+
+    /* 댓글 구분선 스타일 */
+    .comment-divider {
+    height: 1px;
+    background: rgba(0,0,0,0.15); /* 검정색, 15% 투명도 */
+    margin: 0.5rem 0;
+    border: none;
+}
 </style>
 

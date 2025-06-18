@@ -2,6 +2,7 @@ import datetime
 
 from pydantic import BaseModel, field_validator
 
+from domain.answer_comment import a_comment_schema
 from domain.user.user_schema import User #답변 작성자 이름 표시
 
 class AnswerCreate(BaseModel):
@@ -21,6 +22,7 @@ class Answer(BaseModel):
     question_id: int
     modify_date: datetime.datetime | None = None
     voter: list[User] = []
+    answer_comments: list[a_comment_schema.Comment] = []
 
 class AnswerUpdate(AnswerCreate):
     answer_id: int

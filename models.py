@@ -43,6 +43,24 @@ class Answer(Base):
     user = relationship("User", backref="answer_users")
     modify_date = Column(DateTime, nullable=True)
     voter = relationship('User', secondary=answer_voter, backref='answer_voters')
+    answer_comments = relationship(
+        "AnswerComment",
+        back_populates="answer",
+        order_by="desc(AnswerComment.create_date)"  # [추가] 최신순 정렬
+    )
+
+
+# 답변에 댓글 기능 추가
+class AnswerComment(Base):
+    __tablename__ = "answer_comment"
+    id = Column(Integer, primary_key=True)
+    content = Column(Text, nullable=False)
+    create_date = Column(DateTime, nullable=False)
+    answer_id = Column(Integer, ForeignKey("answer.id"))
+    answer = relationship("Answer", back_populates="answer_comments")
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=True)
+    user = relationship("User", backref="answer_comment_users")
+
 
 class User(Base):
     __tablename__ = "user"

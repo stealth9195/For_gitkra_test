@@ -7,6 +7,9 @@ from domain.question import question_router
 from domain.answer import answer_router
 from domain.user import user_router
 
+# 답변에 댓글 기능
+from domain.answer_comment import a_comment_router
+
 app = FastAPI()
 
 origins = [
@@ -30,6 +33,9 @@ app.include_router(question_router.router)
 app.include_router(answer_router.router)
 app.include_router(user_router.router)
 app.mount("/assets", StaticFiles(directory="frontend/dist/assets"))
+
+# 답변에 댓글 기능
+app.include_router(a_comment_router.router)
 
 @app.get("/")
 def index():
