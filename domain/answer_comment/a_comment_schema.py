@@ -21,3 +21,6 @@ class Comment(BaseModel):
     create_date: datetime.datetime
     user: User | None
     answer_id: int
+
+class CommentDelete(BaseModel):
+    comment_id: int

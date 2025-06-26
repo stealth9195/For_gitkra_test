@@ -31,3 +31,16 @@ def comment_create(answer_id: int,
 def comment_detail(comment_id: int, db: Session = Depends(get_db)):
     comment = a_comment_crud.get_comment(db, comment_id=comment_id)
     return comment
+
+@router.delete("/delete", status_code=status.HTTP_204_NO_CONTENT)
+def comment_delete(_comment_delete: a_comment_schema.CommentDelete,
+                  db: Session = Depends(get_db),
+                  current_user: User = Depends(get_current_user)):
+    db_comment = a_comment_crud.get_comment(db, comment_id=_comment_delete.comment_id)
+    if not db_comment:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="데이터를 찾을수 없습니다.")
+    if current_user.id != db_comment.user.id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="삭제 권한이 없습니다.")
+    a_comment_crud.delete_comment(db=db, db_comment=db_comment)

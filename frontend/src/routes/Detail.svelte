@@ -162,6 +162,24 @@
         }
     }
 
+    // 댓글 삭제
+    function delete_comment(comment_id) {
+        if(window.confirm('정말로 삭제하시겠습니까?')) {
+            let url = "/api/comment/delete"
+            let params = {
+                comment_id: comment_id
+            }
+            fastapi('delete', url, params, 
+                (json) => {
+                    get_question()
+                },
+                (err_json) => {
+                    error = err_json
+                }
+            )
+        }
+    }
+
     // 질문 추천 기능
     function vote_question(_question_id) {
         if(window.confirm('추천하시겠습니까?')) {
@@ -361,11 +379,20 @@
                         {/if}
                         <div class="comment" style="display: flex; align-items: center; gap: 10px;">
                             <!-- <span class="comment-user">{comment.user ? comment.user.username : " "}</span> -->
-                            <div class="comment-content">{comment.content}</div>
+                            <div class="comment-content ms-2">{comment.content}</div> <!-- 댓글 내용 -->
 
-                            <div class="badge bg-light text-dark p-2 text-start" style="margin-left: auto;">
-                                <div class="mb-2">{ comment.user ? comment.user.username : ""}</div> <!-- 질문 작성자 -->
-                                <div>{moment(comment.create_date).format("YY-MM-DD hh:mm a")}</div> <!-- 질문 작성 날짜 -->
+                            <!-- 댓글 삭제 버튼 -->
+                            <div style="margin-left: auto;">
+                                {#if comment.user && $username === comment.user.username }
+                                <button class="btn btn-sm btn-outline-secondary"
+                                on:click={() => delete_comment(comment.id) }>삭제</button>
+                                {/if}
+                            </div> 
+                            
+                            <!--댓글 작성자 및 날짜-->
+                            <div class="badge bg-light text-dark p-2 text-start" >
+                                <div class="mb-2">{ comment.user ? comment.user.username : ""}</div> <!-- 댓글 작성자 -->
+                                <div>{moment(comment.create_date).format("YY-MM-DD hh:mm a")}</div> <!-- 댓글 작성 날짜 -->
                             </div>
 
                         </div>

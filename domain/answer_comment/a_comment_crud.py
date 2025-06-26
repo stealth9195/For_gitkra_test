@@ -17,3 +17,7 @@ def create_comment(db: Session, answer: Answer, comment_create: CommentCreate, u
 
 def get_comment(db: Session, comment_id: int):
     return db.query(AnswerComment).get(comment_id)
+
+def delete_comment(db: Session, db_comment: AnswerComment):
+    db.delete(db_comment)
+    db.commit()
