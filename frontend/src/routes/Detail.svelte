@@ -8,38 +8,44 @@
     moment.locale('ko')
 
     
-    import { onMount } from 'svelte'
-    
+    import { onMount } from 'svelte';
+
     // 댓글 펼치기 상태
     let openComments = {};
 
     // 댓글 입력 상태
     let newComment = {}; // answer.id별로 댓글 입력값 저장
-    
+
     // 질문, 답변, 에러 상태
-    export let params = {}
-    let question_id = params.question_id
-    let question = {answers:[], voter:[], content: ''}
-    let content = ""
-    let error = {detail:[]}
+    export let params = {};
+    let question_id = params.question_id;
+    let question = { answers: [], voter: [], content: '' };
+    let content = "";
+    let error = { detail: [] };
 
     // 정렬 방식 상태 추가
     let sortMethod = 'latest';
 
+    // 각 답변별 댓글 관련 상태
+    let comments = {}; // 전체 댓글
+    let visibleComments = {}; // 화면에 보여지는 댓글
+    let commentsToShow = 5; // 한 번에 보여줄 댓글 수
+    let commentsContainer = {}; // 댓글 컨테이너 엘리먼트
+
     // 질문 상태 조회
     function get_question() {
         fastapi("get", "/api/question/detail/" + question_id, {}, (json) => {
-            // 추천 수 기준 내림차순 정렬
-            // json.answers = json.answers.sort((a, b) => {
-            //     return b.voter.length - a.voter.length
-            // })
             question = json;
             sortMethod = 'latest';
-        })
+            // 답변별 댓글 상태 초기화
+            question.answers.forEach(answer => {
+                comments[answer.id] = answer.answer_comments || [];
+                visibleComments[answer.id] = comments[answer.id].slice(0, commentsToShow);
+            });
+        });
     }
 
-    get_question()
-
+    get_question();
 
     // 답변 정렬 함수
     function sortAnswers(answers, method) {
@@ -48,7 +54,7 @@
                 const voteDiff = b.voter.length - a.voter.length;
                 return voteDiff !== 0
                     ? voteDiff
-                    : new Date(b.create_date) - new Date(a.create_date);    
+                    : new Date(b.create_date) - new Date(a.create_date);
             } else {
                 return new Date(b.create_date) - new Date(a.create_date); // 최신순 정렬
             }
@@ -60,21 +66,21 @@
 
     // 답변 등록
     function post_answer(event) {
-        event.preventDefault()
-        let url = "/api/answer/create/" + question_id
+        event.preventDefault();
+        let url = "/api/answer/create/" + question_id;
         let params = {
             content: content
-        }
-        fastapi('post', url, params, 
+        };
+        fastapi('post', url, params,
             (json) => {
-                content = ''
-                error = {detail:[]}
-                get_question()
+                content = '';
+                error = { detail: [] };
+                get_question();
             },
             (err_json) => {
-                error = err_json
+                error = err_json;
             }
-        )
+        );
     }
 
     // 댓글 펼치기
@@ -82,48 +88,48 @@
         openComments = {
             ...openComments,
             [answerId]: !openComments[answerId]
-        }
+        };
         // [추가] 펼칠 때 입력값 초기화
         if (openComments[answerId]) {
-            newComment[answerId] = ''
+            newComment[answerId] = '';
         }
     }
 
     // 댓글 등록
-    /*
-    function post_comment(event) {
-        event.preventDefault()
-        let url = "/api/comment/create/" + answer_id
-        let params = {
-            content: content
-        }
-        fastapi('post', url, params, 
-            (json) => {
-                content = ''
-                error = {detail:[]}
-                get_question()
-            },
-            (err_json) => {
-                error = err_json
-            }
-        )
-    }
-    */
     function addComment(answerId) {
-        let commentContent = newComment[answerId]
+        let commentContent = newComment[answerId];
         if (!commentContent || !commentContent.trim()) return;
-        let url = "/api/comment/create/" + answerId
-        let params = { content: commentContent }
-        fastapi('post', url, params, 
+        let url = "/api/comment/create/" + answerId;
+        let params = { content: commentContent };
+        fastapi('post', url, params,
             (json) => {
-                newComment[answerId] = ''
-                error = {detail:[]}
-                get_question()
+                newComment[answerId] = '';
+                error = { detail: [] };
+                get_question();
             },
             (err_json) => {
-                error = err_json
+                error = err_json;
             }
-        )
+        );
+    }
+
+    // 댓글 더 보기
+    function loadMoreComments(answerId) {
+        const currentVisibleCount = visibleComments[answerId].length;
+        const totalComments = comments[answerId].length;
+
+        if (currentVisibleCount < totalComments) {
+            const nextComments = comments[answerId].slice(currentVisibleCount, currentVisibleCount + commentsToShow);
+            visibleComments[answerId] = [...visibleComments[answerId], ...nextComments];
+        }
+    }
+
+    // 스크롤 이벤트 핸들러
+    function handleScroll(event, answerId) {
+        const { scrollTop, scrollHeight, clientHeight } = event.target;
+        if (scrollHeight - scrollTop <= clientHeight + 20) { // 20px 전에 로드
+            loadMoreComments(answerId);
+        }
     }
 
     // 질문 삭제 
@@ -372,34 +378,39 @@
                 </form>
 
                 <!-- 2. 댓글 목록 -->
-                {#if answer.answer_comments && answer.answer_comments.length > 0}
-                    {#each answer.answer_comments as comment, i}
-                        {#if i > 0}
-                            <div class="comment-divider"></div>
-                        {/if}
-                        <div class="comment" style="display: flex; align-items: center; gap: 10px;">
-                            <!-- <span class="comment-user">{comment.user ? comment.user.username : " "}</span> -->
-                            <div class="comment-content ms-2">{comment.content}</div> <!-- 댓글 내용 -->
+                <div 
+                    class="comment-list-container" 
+                    style="max-height: 300px; overflow-y: auto;"
+                    bind:this={commentsContainer[answer.id]}
+                    on:scroll={(e) => handleScroll(e, answer.id)}
+                >
+                    {#if visibleComments[answer.id] && visibleComments[answer.id].length > 0}
+                        {#each visibleComments[answer.id] as comment, i}
+                            {#if i > 0}
+                                <div class="comment-divider"></div>
+                            {/if}
+                            <div class="comment" style="display: flex; align-items: center; gap: 10px;">
+                                <div class="comment-content ms-2">{comment.content}</div> <!-- 댓글 내용 -->
 
-                            <!-- 댓글 삭제 버튼 -->
-                            <div style="margin-left: auto;">
-                                {#if comment.user && $username === comment.user.username }
-                                <button class="btn btn-sm btn-outline-secondary"
-                                on:click={() => delete_comment(comment.id) }>삭제</button>
-                                {/if}
-                            </div> 
-                            
-                            <!--댓글 작성자 및 날짜-->
-                            <div class="badge bg-light text-dark p-2 text-start" >
-                                <div class="mb-2">{ comment.user ? comment.user.username : ""}</div> <!-- 댓글 작성자 -->
-                                <div>{moment(comment.create_date).format("YY-MM-DD hh:mm a")}</div> <!-- 댓글 작성 날짜 -->
+                                <!-- 댓글 삭제 버튼 -->
+                                <div style="margin-left: auto;">
+                                    {#if comment.user && $username === comment.user.username }
+                                    <button class="btn btn-sm btn-outline-secondary"
+                                    on:click={() => delete_comment(comment.id) }>삭제</button>
+                                    {/if}
+                                </div> 
+                                
+                                <!--댓글 작성자 및 날짜-->
+                                <div class="badge bg-light text-dark p-2 text-start" >
+                                    <div class="mb-2">{ comment.user ? comment.user.username : ""}</div> <!-- 댓글 작성자 -->
+                                    <div>{moment(comment.create_date).format("YY-MM-DD hh:mm a")}</div> <!-- 댓글 작성 날짜 -->
+                                </div>
                             </div>
-
-                        </div>
-                    {/each}
-                {:else}
-                    <div class="no-comments">아직 댓글이 없습니다.</div>
-                {/if}
+                        {/each}
+                    {:else}
+                        <div class="no-comments">아직 댓글이 없습니다.</div>
+                    {/if}
+                </div>
 
             </div>
         {/if}
