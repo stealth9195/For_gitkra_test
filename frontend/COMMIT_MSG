@@ -1,0 +1,6 @@
+feat: Implement infinite scroll for comments
+
+Implement infinite scroll for the comment section in the Detail view.
+- Use Intersection Observer to detect when the user scrolls to the end of the comment list.
+- Load more comments dynamically when the user reaches the end.
+- Add a loading indicator while new comments are being fetched.
